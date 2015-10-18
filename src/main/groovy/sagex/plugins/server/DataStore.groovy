@@ -27,8 +27,9 @@ import sagex.plugins.server.data.Plugin
 
 @Log4j
 class DataStore {
+	static private final boolean IS_TEST_MODE = Boolean.parseBoolean(System.getProperty('sops.test')) || Boolean.parseBoolean(System.getenv('SOPS_TEST'))
 	static File getAppRoot() { return new File(System.getProperty('sops.root') ?: new File(new File(System.getProperty('user.home')), '.sops').absolutePath) }
-	static private final String DB_NAME = "jdbc:derby:${Boolean.parseBoolean(System.getProperty('sops.testing')) ? 'memory:' : ''}${FilenameUtils.separatorsToUnix(FilenameUtils.getFullPath(new File(getAppRoot(), 'throwaway').absolutePath))}sops"
+	static private final String DB_NAME = "jdbc:derby:${IS_TEST_MODE ? 'memory:' : ''}${FilenameUtils.separatorsToUnix(FilenameUtils.getFullPath(new File(getAppRoot(), 'throwaway').absolutePath))}sops"
 	static {
 		if(!getAppRoot().exists() && !getAppRoot().mkdirs())
 			throw new IOException("Unable to create db directory: ${getAppRoot().absolutePath}")
@@ -52,9 +53,9 @@ class DataStore {
 					throw e
 				}
 			}
+			INSTANCE = null
+			log.info 'Database shutdown completed.'
 		}
-		INSTANCE = null
-		log.info 'Database shutdown completed.'
 	}
 	
 	static void main(args) {
@@ -89,6 +90,18 @@ class DataStore {
 		sql.execute(qry)
 	}
 	
+	void savePlugin(Plugin p, Developer owner) {
+		sql.withTransaction {
+			sql.execute("INSERT INTO plugin (name, version, manifest) VALUES ($p.id, $p.version, $p.manifest)")
+			sql.execute("INSERT INTO owns (email, name, version) VALUES ($owner.email, $p.id, $p.version)")
+		}
+	}
+	
+	boolean pluginVersionExists(String id, String version) {
+		def qry = "SELECT * FROM plugin WHERE name = $id AND version = $version"
+		sql.firstRow(qry)
+	}
+	
 	Developer getDeveloper(String email) {
 		def qry = "SELECT * FROM developer WHERE email = $email"
 		def row = sql.firstRow(qry)
@@ -97,9 +110,9 @@ class DataStore {
 	
 	Plugin[] getPluginsOwnedByDev(Developer d) {
 		def plugins = []
-		def qry = "SELECT * FROM owns WHERE email = $d.email"
+		def qry = "SELECT o.name, o.version, p.manifest FROM owns AS o LEFT OUTER JOIN plugin AS p ON (o.name = p.name AND o.version = p.version) WHERE o.email = $d.email"
 		sql.eachRow(qry) {
-			plugins << new Plugin(it.name, it.version)
+			plugins << new Plugin(it.name, it.version, it.manifest)
 		}
 		plugins
 	}

@@ -21,4 +21,5 @@ import groovy.transform.Canonical
 class Plugin {
 	final String id
 	final String version
+	final String manifest
 }

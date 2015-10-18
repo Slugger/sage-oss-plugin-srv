@@ -24,11 +24,8 @@ import sagex.plugins.server.DataStore
 import sagex.plugins.server.data.Developer
 import freemarker.template.Configuration
 
-@WebServlet(name='devServlet', urlPatterns=['/developer', '/private'])
+@WebServlet(name='devServlet', urlPatterns=['/developer'])
 class DevServlet extends HttpServlet {
-	static {
-		System.setProperty('sops.testing', 'true')
-	}
 	
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) {

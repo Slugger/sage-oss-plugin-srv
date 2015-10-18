@@ -22,13 +22,12 @@ import javax.servlet.http.HttpServletResponse
 
 import org.apache.shiro.SecurityUtils
 
+import sagex.plugins.server.DataStore
+import sagex.plugins.server.data.Plugin
 import freemarker.template.Configuration
 
 @WebServlet(name='pluginServlet', urlPatterns=['/plugin'])
 class PluginServlet extends HttpServlet {
-	static {
-		System.setProperty('sops.testing', 'true')
-	}
 	
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
@@ -38,8 +37,12 @@ class PluginServlet extends HttpServlet {
 		t.process(model, resp.writer)
 	}
 	
-//	@Override
-//	protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-//		
-//	}
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+		def xml = new XmlSlurper().parseText(req.getParameter('xml'))
+		def p = new Plugin(xml.Identifier.text(), xml.Version.text(), req.getParameter('xml'))
+		def d = DataStore.instance.getDeveloper(req.getParameter('email'))
+		DataStore.instance.savePlugin(p, d)
+		doGet(req, resp)
+	}
 }
