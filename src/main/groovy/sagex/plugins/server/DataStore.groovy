@@ -112,7 +112,16 @@ class DataStore {
 		def plugins = []
 		def qry = "SELECT o.name, o.version, p.manifest FROM owns AS o LEFT OUTER JOIN plugin AS p ON (o.name = p.name AND o.version = p.version) WHERE o.email = $d.email"
 		sql.eachRow(qry) {
-			plugins << new Plugin(it.name, it.version, it.manifest)
+			plugins << new Plugin(it.name, it.version, it.manifest.characterStream.text)
+		}
+		plugins
+	}
+	
+	Plugin[] getPlugins() {
+		def plugins = []
+		def qry = "SELECT o.name, o.version, p.manifest FROM owns AS o LEFT OUTER JOIN plugin AS p ON (o.name = p.name AND o.version = p.version)"
+		sql.eachRow(qry) {
+			plugins << new Plugin(it.name, it.version, it.manifest.characterStream.text)
 		}
 		plugins
 	}
